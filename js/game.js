@@ -11,14 +11,14 @@ const SAVE_KEY = 'sunnydale-save-v1';
 const BEST_KEY = 'sunnydale-best-v1';
 
 const SETTINGS = {
-  dayLength: 8,          // real seconds per game day at 1x
+  dayLength: 14,         // real seconds per game day at 1x
   daysPerSeason: 7,
   startMoney: 480,
   revenuePerMWday: 2.8,  // $ per MW delivered per quoted "unit-day"… see revenue calc
   maintenancePerPlant: 1.6,   // $ per plant per day
   batteryMaintenance: 0.8,
-  stressGrowPerSec: 10,  // stress gained per fraction-unmet per second
-  stressDecayPerSec: 2.5,
+  stressGrowPerSec: 4,   // stress gained per fraction-unmet per second
+  stressDecayPerSec: 4,
   bankruptLimit: -1,     // any negative balance ends the run
   disasterBaseChance: 0.10,
   disasterChancePerSeason: 0.03,
@@ -32,7 +32,7 @@ const PLANTS = {
   coal:    { name: 'Coal Plant',     icon: '🏭',  color: '#d8d5e0', cost: 150, cap: 42,  tagline: 'Big and steady' },
   nuclear: { name: 'Nuclear Reactor',icon: '⚛️',  color: '#e2c8f5', cost: 420, cap: 100, tagline: 'Massive and constant, very pricey' },
   hydro:   { name: 'Hydro Dam',      icon: '💧',  color: '#90e0ef', cost: 260, cap: 60,  tagline: 'Steady, but hurts in droughts and floods' },
-  battery: { name: 'Battery Bank',   icon: '🔋',  color: '#b5e48c', cost: 60,  cap: null, storage: 250, chargeRate: 40, dischargeRate: 55, tagline: 'Stores surplus, covers deficits' },
+  battery: { name: 'Battery Bank',   icon: '🔋',  color: '#b5e48c', cost: 60,  cap: null, storage: 400, chargeRate: 45, dischargeRate: 50, tagline: 'Stores surplus, covers deficits' },
 };
 const PLANT_ORDER = ['solar', 'wind', 'gas', 'coal', 'nuclear', 'hydro', 'battery'];
 
@@ -78,9 +78,8 @@ function freshState() {
     version: 1,
     money: SETTINGS.startMoney,
     day: 1,                  // global day (1-based)
-    dayProgress: 0.25,       // start at mid-morning
+    dayProgress: 0.40,       // start at mid-morning
     plants: { solar: 0, wind: 0, gas: 1, coal: 0, nuclear: 0, hydro: 0, battery: 0 },
-    configBaseline: 42,      // MW base demand at season 0
     stress: 0,
     batteryEnergy: 0,
     energyDelivered: 0,      // total MWh-ish
@@ -103,7 +102,7 @@ function moneyFmtRaw(n) { return (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).
 function seasonIndexOf(day) { return Math.floor((day - 1) / SETTINGS.daysPerSeason) % 4; }
 function seasonsElapsed(day) { return Math.floor((day - 1) / SETTINGS.daysPerSeason); }
 function dayInSeason(day) { return ((day - 1) % SETTINGS.daysPerSeason) + 1; }
-function diffMult(day) { return 1 + 0.16 * seasonsElapsed(day); }
+function diffMult(day) { return 1 + 0.20 * seasonsElapsed(day); }
 
 // Demand multiplier from an active disaster
 function disasterDemandMult() {
@@ -135,16 +134,16 @@ function sunFactor(dayProgress) {
 }
 function timeOfDayFactor(d) {
   if (d < 0.2) return 0.72;
-  if (d < 0.35) return 0.72 + (d - 0.2) / 0.15 * 0.36;   // morning ramp → 1.08
-  if (d < 0.5)  return 1.08 - (d - 0.35) / 0.15 * 0.18;  // midday → 0.90
-  if (d < 0.65) return 0.90 + (d - 0.5) / 0.15 * 0.55;   // evening ramp → 1.45
-  if (d < 0.82) return 1.45 - (d - 0.65) / 0.17 * 0.65;  // taper → 0.80
-  return 0.72 + (d - 0.82) / 0.18 * 0.08;                // night back down
+  if (d < 0.35) return 0.72 + (d - 0.2) / 0.15 * 0.33;   // morning ramp → 1.05
+  if (d < 0.5)  return 1.05 - (d - 0.35) / 0.15 * 0.16;  // midday → 0.89
+  if (d < 0.65) return 0.89 + (d - 0.5) / 0.15 * 0.42;   // evening ramp → 1.31
+  if (d < 0.82) return 1.31 - (d - 0.65) / 0.17 * 0.50;  // taper → 0.81
+  return 0.72 + (d - 0.82) / 0.18 * 0.06;                // night back down
 }
 
 function baseDemandMW(day) {
   const s = SEASONS[seasonIndexOf(day)];
-  return state.configBaseline * s.demand * diffMult(day);
+  return 36 * s.demand * diffMult(day);
 }
 function demandMW(day, dayProgress) {
   return baseDemandMW(day) * timeOfDayFactor(dayProgress) * disasterDemandMult();
@@ -298,6 +297,7 @@ function endRun(reason, detail, supply, demand) {
   if (state.gameOverReason) return;
   state.gameOverReason = reason;
   state.score = Math.max(0, Math.floor(state.energyDelivered * 2 + state.daysSurvived * 40 + seasonsElapsed(state.day) * 200));
+  pushLog(`Game over — ${reason}.`, 'disaster');
   // persist best score
   const best = loadBest();
   best.push({
@@ -499,14 +499,14 @@ function drawSky(dt) {
     const x = 70 + p * 580;
     const y = 185 - Math.sin(Math.PI * p) * 130;
     const eclipsed = state.activeDisaster && state.activeDisaster.key === 'eclipse';
-    const glowR = eclipsed ? 22 : 30 + Math.sin(performance.now() / 500) * 3;
-    const glow = ctx.createRadialGradient(x, y, 4, x, y, glowR * 2.4);
-    glow.addColorStop(0, eclipsed ? 'rgba(200,200,220,0.9)' : 'rgba(255, 224, 130, 0.95)');
+    const glowR = eclipsed ? 22 : 40 + Math.sin(performance.now() / 500) * 3;
+    const glow = ctx.createRadialGradient(x, y, 4, x, y, glowR);
+    glow.addColorStop(0, eclipsed ? 'rgba(200,200,220,0.55)' : 'rgba(255, 224, 130, 0.55)');
     glow.addColorStop(1, 'rgba(255,224,130,0)');
     ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(x, y, glowR * 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, glowR, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = eclipsed ? '#9a9ab0' : '#ffdd66';
-    ctx.beginPath(); ctx.arc(x, y, eclipsed ? 18 : 26, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, eclipsed ? 18 : 24, 0, Math.PI * 2); ctx.fill();
     if (eclipsed) {
       ctx.fillStyle = '#4a4a68';
       ctx.beginPath(); ctx.arc(x - 6, y - 4, 18, 0, Math.PI * 2); ctx.fill();
@@ -579,11 +579,11 @@ function computePlantSlots() {
 function drawPlants(dt) {
   computePlantSlots();
   if (plantSlots.length === 0) return;
-  const slotW = 700 / Math.max(plantSlots.length, 1);
+  const slotW = Math.min(700 / Math.max(plantSlots.length, 1), 120);
   for (let i = 0; i < plantSlots.length; i++) {
     const x = 40 + slotW * (i + 0.5);
     const y = 238;
-    drawPlantIcon(plantSlots[i].key, x, y, slotW * 0.62);
+    drawPlantIcon(plantSlots[i].key, x, y, Math.min(slotW * 0.62, 70));
   }
 }
 
