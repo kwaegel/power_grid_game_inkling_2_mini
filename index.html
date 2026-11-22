@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sunnydale Grid</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand">
+      <span class="brand-sun">☀️</span>
+      <h1>Sunnydale Grid</h1>
+    </div>
+    <div class="hud">
+      <div class="hud-pill" id="hud-clock" title="Current season and day">🌱 Spring · Day 1</div>
+      <div class="hud-pill hud-money" id="hud-money" title="Money">💰 $500</div>
+      <div class="hud-pill" id="hud-energy" title="Energy delivered today">⚡ 0 MWh</div>
+      <div class="hud-pill" id="hud-stress" title="Unmet demand stress — full means blackout">📡 0%</div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-pause" class="icon-btn" title="Pause (Space)">⏸️</button>
+      <button id="btn-speed" class="icon-btn" title="Toggle speed">1×</button>
+      <button id="btn-save" class="icon-btn" title="Save game">💾</button>
+      <button id="btn-export" class="icon-btn" title="Export save to file">📤</button>
+      <button id="btn-import" class="icon-btn" title="Import save from file">📥</button>
+      <input id="file-import" type="file" accept=".json,application/json" hidden>
+      <button id="btn-new" class="icon-btn danger" title="Start a new game">🔄</button>
+    </div>
+  </header>
+
+  <main id="layout">
+    <aside id="shop" class="panel">
+      <h2>Plant Shop</h2>
+      <p class="hint">Click a card to build. Sell to reclaim 60%.</p>
+      <div id="shop-cards"></div>
+    </aside>
+
+    <section id="center">
+      <div id="disaster-banner" class="hidden"></div>
+      <canvas id="scene" width="720" height="300"></canvas>
+      <div id="flow" class="panel">
+        <div class="flow-row">
+          <div class="flow-label">⚡ Demand <strong id="demand-val">0 MW</strong></div>
+          <div class="flow-label right">Supply <strong id="supply-val">0 MW</strong></div>
+        </div>
+        <div id="supply-bar"><div id="supply-fill"></div><div id="demand-marker"></div></div>
+        <div class="flow-row small">
+          <span id="flow-net">Balanced</span>
+          <span id="season-line"></span>
+        </div>
+      </div>
+      <div id="meters">
+        <div class="meter panel">
+          <label>🔋 Battery</label>
+          <div class="meter-track"><div id="battery-fill"></div></div>
+          <span id="battery-val"></span>
+        </div>
+        <div class="meter panel">
+          <label>📡 Grid stress</label>
+          <div class="meter-track"><div id="stress-fill"></div></div>
+          <span id="stress-val"></span>
+        </div>
+      </div>
+    </section>
+
+    <aside id="log-panel" class="panel">
+      <h2>📰 News Feed</h2>
+      <div id="log"></div>
+    </aside>
+  </main>
+</div>
+
+<div id="gameover-overlay" class="hidden">
+  <div class="gameover-card">
+    <h2 id="gameover-title">Grid Down!</h2>
+    <p id="gameover-reason"></p>
+    <div class="gameover-score">
+      <span class="big-number" id="gameover-score">0</span>
+      <span class="label">score</span>
+    </div>
+    <ul class="gameover-breakdown" id="gameover-breakdown"></ul>
+    <h3>Best runs</h3>
+    <ol class="best-scores" id="best-scores"></ol>
+    <button id="btn-again" class="primary">▶ Play again</button>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script src="js/game.js"></script>
+</body>
+</html>

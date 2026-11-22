@@ -1,0 +1,13 @@
+{
+  "name": "sunnydale-grid",
+  "version": "1.0.0",
+  "description": "A cute browser-based power grid management game. Client-side only.",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "serve": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
