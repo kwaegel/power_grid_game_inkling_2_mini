@@ -7,10 +7,16 @@ A real-time browser-based power-grid management game. Every second, the simulate
 ## How to run
 
 ```bash
-npm start          # node server.js — serves on http://127.0.0.1:8080/
+npm start                        # serves on http://127.0.0.1:8080
+npm start -- --port 3000          # serve on 3000 instead
+node server.js 3000               # same thing (positional port)
+PORT=3000 npm start               # same thing via env var
+node server.js --help             # usage
 ```
 
-Or with `npx serve .` / any static file server. No build step, no dependencies.
+If the requested port is unavailable (e.g. 8080 in use), the next free port is
+used automatically and reported (e.g. "Port 8080 in use — trying 8081"). No
+build step, no dependencies.
 
 ## How to play
 
